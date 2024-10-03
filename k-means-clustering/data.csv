@@ -1,0 +1,27 @@
+Language,Repos on GitHub (K),Learning Difficulty (1-5),Average Salary ($K/year)
+Python,4500,2,110
+JavaScript,8500,3,100
+Java,3100,4,115
+C++,2100,5,120
+Swift,900,4,115
+Go,600,3,130
+Ruby,1500,3,95
+PHP,2500,3,85
+Kotlin,800,4,120
+TypeScript,4000,3,105
+C#,2300,4,110
+Rust,500,4,125
+Perl,300,5,90
+R,1000,4,95
+Scala,450,4,110
+Objective-C,200,4,100
+Dart,250,3,95
+Haskell,150,5,105
+Lua,100,3,90
+MATLAB,300,4,85
+VBA,200,3,80
+Shell,100,5,70
+Assembly,50,5,110
+Elixir,80,4,130
+F#,30,4,110
+Fortran,60,5,115
