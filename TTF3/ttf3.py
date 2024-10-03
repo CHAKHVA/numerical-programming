@@ -1,6 +1,5 @@
 def function(x):
     return 3 * x ** 3 - 2 * x ** 2 + x
-
 def derivative(x):
     return 9 * x ** 2 - 4 * x + 1
 
