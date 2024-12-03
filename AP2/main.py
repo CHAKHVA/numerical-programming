@@ -67,7 +67,6 @@ def plot_tangent_approximation():
     plt.legend()
     plt.show()
 
-# Run the analysis
 if __name__ == "__main__":
     plot_error_analysis()
     plot_tangent_approximation()
