@@ -39,49 +39,72 @@ class CannyEdgeDetector:
         kernel = self.create_gaussian_kernel()
         return self.convolve2d(image, kernel)
 
-    def compute_gradients(self, image: np.ndarray) -> tuple[Any, Any, np.ndarray, np.ndarray]:
-        """Compute gradients using Sobel operators."""
-        # Sobel operators
-        sobel_x = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
-        sobel_y = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
+    def compute_gradients(self, image: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+        """Compute gradients using separable Sobel operators."""
+        # Separable Sobel kernels
+        sobel_x_1d = np.array([1, 0, -1])
+        sobel_y_1d = np.array([1, 2, 1])
 
-        # Compute gradients
-        gradient_x = self.convolve2d(image, sobel_x)
-        gradient_y = self.convolve2d(image, sobel_y)
+        # Apply separable convolution for x gradient
+        temp_x = self.convolve2d(image, sobel_x_1d.reshape(1, -1))
+        gradient_x = self.convolve2d(temp_x, sobel_y_1d.reshape(-1, 1))
 
-        # Compute magnitude with normalization
+        # Apply separable convolution for y gradient
+        temp_y = self.convolve2d(image, sobel_y_1d.reshape(1, -1))
+        gradient_y = self.convolve2d(temp_y, sobel_x_1d.reshape(-1, 1))
+
+        # Compute magnitude and normalize
         gradient_magnitude = np.sqrt(gradient_x ** 2 + gradient_y ** 2)
         gradient_magnitude = gradient_magnitude / gradient_magnitude.max() * 255
 
-        # Compute direction (in degrees for easier thresholding)
+        # Compute direction in degrees
         gradient_direction = np.arctan2(gradient_y, gradient_x) * 180 / np.pi
 
         return gradient_magnitude, gradient_direction, gradient_x, gradient_y
 
     @staticmethod
     def non_maximum_suppression(magnitude: np.ndarray, direction: np.ndarray) -> np.ndarray:
-        """Apply non-maximum suppression to thin edges."""
+        """Vectorized non-maximum suppression."""
         height, width = magnitude.shape
-        result = np.zeros_like(magnitude)
-
-        # Convert angles to degrees and shift to positive values
         angle = np.degrees(direction) % 180
 
-        for i in range(1, height - 1):
-            for j in range(1, width - 1):
-                # Get neighbors based on gradient direction
-                if (0 <= angle[i, j] < 22.5) or (157.5 <= angle[i, j] <= 180):
-                    neighbors = [magnitude[i, j - 1], magnitude[i, j + 1]]
-                elif 22.5 <= angle[i, j] < 67.5:
-                    neighbors = [magnitude[i - 1, j - 1], magnitude[i + 1, j + 1]]
-                elif 67.5 <= angle[i, j] < 112.5:
-                    neighbors = [magnitude[i - 1, j], magnitude[i + 1, j]]
-                else:
-                    neighbors = [magnitude[i - 1, j + 1], magnitude[i + 1, j - 1]]
+        # Pad magnitude array
+        pad_mag = np.pad(magnitude, ((1, 1), (1, 1)), mode='constant')
+        result = np.zeros_like(magnitude)
 
-                # Suppress non-maximum pixels
-                if magnitude[i, j] >= max(neighbors):
-                    result[i, j] = magnitude[i, j]
+        # Pre-compute angle masks
+        angle_0 = (angle < 22.5) | (angle >= 157.5)
+        angle_45 = (angle >= 22.5) & (angle < 67.5)
+        angle_90 = (angle >= 67.5) & (angle < 112.5)
+        angle_135 = (angle >= 112.5) & (angle < 157.5)
+
+        # Create indices for all pixels
+        y_indices, x_indices = np.mgrid[1:height + 1, 1:width + 1]
+
+        # Apply suppression for each direction
+        if angle_0.any():
+            mask = angle_0[y_indices - 1, x_indices - 1]
+            result[mask] = (pad_mag[y_indices, x_indices][mask] >=
+                            np.maximum(pad_mag[y_indices, x_indices - 1][mask],
+                                       pad_mag[y_indices, x_indices + 1][mask])) * magnitude[mask]
+
+        if angle_45.any():
+            mask = angle_45[y_indices - 1, x_indices - 1]
+            result[mask] = (pad_mag[y_indices, x_indices][mask] >=
+                            np.maximum(pad_mag[y_indices - 1, x_indices - 1][mask],
+                                       pad_mag[y_indices + 1, x_indices + 1][mask])) * magnitude[mask]
+
+        if angle_90.any():
+            mask = angle_90[y_indices - 1, x_indices - 1]
+            result[mask] = (pad_mag[y_indices, x_indices][mask] >=
+                            np.maximum(pad_mag[y_indices - 1, x_indices][mask],
+                                       pad_mag[y_indices + 1, x_indices][mask])) * magnitude[mask]
+
+        if angle_135.any():
+            mask = angle_135[y_indices - 1, x_indices - 1]
+            result[mask] = (pad_mag[y_indices, x_indices][mask] >=
+                            np.maximum(pad_mag[y_indices - 1, x_indices + 1][mask],
+                                       pad_mag[y_indices + 1, x_indices - 1][mask])) * magnitude[mask]
 
         return result
 
@@ -98,30 +121,35 @@ class CannyEdgeDetector:
 
     @staticmethod
     def edge_tracking(strong_edges: np.ndarray, weak_edges: np.ndarray) -> np.ndarray:
-        """Track edges using hysteresis."""
-        height, width = strong_edges.shape
+        """Optimized edge tracking using NumPy operations."""
         result = strong_edges.copy()
 
-        # 8-connected neighbors
-        dx = [-1, -1, -1, 0, 0, 1, 1, 1]
-        dy = [-1, 0, 1, -1, 1, -1, 0, 1]
+        # Create padded array for easier neighbor checking
+        padded_result = np.pad(result, ((1, 1), (1, 1)), mode='constant')
+        padded_weak = np.pad(weak_edges, ((1, 1), (1, 1)), mode='constant')
 
-        # Track weak edges connected to strong edges
+        # Keep track of weak edge positions
+        weak_y, weak_x = np.where(padded_weak[1:-1, 1:-1])
+        weak_y += 1
+        weak_x += 1
+
         while True:
             changed = False
-            for i in range(1, height - 1):
-                for j in range(1, width - 1):
-                    if weak_edges[i, j] and not result[i, j]:
-                        # Check if connected to strong edge
-                        for k in range(8):
-                            if result[i + dx[k], j + dy[k]]:
-                                result[i, j] = True
-                                changed = True
-                                break
+            # Create 3x3 window sum for each weak edge position
+            neighbors_sum = np.sum([padded_result[weak_y + dy, weak_x + dx]
+                                    for dy in [-1, 0, 1] for dx in [-1, 0, 1]], axis=0)
+
+            # Find weak edges with strong neighbors
+            to_activate = (neighbors_sum > 0) & ~padded_result[weak_y, weak_x]
+
+            if to_activate.any():
+                changed = True
+                padded_result[weak_y[to_activate], weak_x[to_activate]] = True
+
             if not changed:
                 break
 
-        return result
+        return padded_result[1:-1, 1:-1]
 
     def detect(self, image: np.ndarray) -> np.ndarray:
         """Apply Canny edge detection pipeline."""
