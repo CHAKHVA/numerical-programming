@@ -155,24 +155,10 @@ class CannyEdgeDetector:
         # Pad image
         padded = np.pad(image, ((pad_height, pad_height), (pad_width, pad_width)), mode='reflect')
 
-        '''
         # Create view of sliding windows
         windows = np.lib.stride_tricks.sliding_window_view(
             padded, (kernel_height, kernel_width)
         )
-        # Perform convolution in one go
+
         return np.sum(windows * kernel, axis=(2, 3))
-        '''
 
-        # Initialize output
-        output = np.zeros_like(image)
-
-        # Apply convolution
-        for i in range(image.shape[0]):
-            for j in range(image.shape[1]):
-                # Take a window of size kernel_height × kernel_width
-                window = padded[i:i + kernel_height, j:j + kernel_width]
-                # Multiply window elements with kernel elements and sum
-                output[i, j] = np.sum(window * kernel)
-
-        return output
