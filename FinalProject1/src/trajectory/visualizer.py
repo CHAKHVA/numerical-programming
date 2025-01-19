@@ -1,26 +1,43 @@
-import matplotlib.pyplot as plt
 from typing import List, Tuple
-from .params import TrajectoryParams
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 from .calculator import TrajectoryCalculator
+from .params import TrajectoryParams
 from .shooting import ShootingMethod
 
 
 class TrajectoryVisualizer:
-    def __init__(self, circles: List[Tuple[int, int, int]], shooting_point: Tuple[float, float]):
+    def __init__(
+        self, circles: List[Tuple[int, int, int]], shooting_point: Tuple[float, float]
+    ):
         self.circles = circles
         self.shooting_point = shooting_point
         self.fig, self.ax = plt.subplots(figsize=(10, 8))
 
+    def _hits_circle(self, x: float, y: float, circle: Tuple[int, int, int]) -> bool:
+        """Check if a point hits or enters the circle."""
+        cx, cy, r = circle
+        distance = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
+        return distance <= r
+
     def animate(self):
         """Animate trajectories from shooting point to each ball"""
         # Setup plot
-        self.ax.set_aspect('equal')
+        self.ax.set_aspect("equal")
         self.ax.grid(True)
 
         # Plot shooting point and circles
-        self.ax.plot(self.shooting_point[0], self.shooting_point[1], 'bo', markersize=10)
+        self.ax.plot(
+            self.shooting_point[0],
+            self.shooting_point[1],
+            "bo",
+            markersize=10,
+            label="Shooting Point",
+        )
         for x, y, r in self.circles:
-            circle = plt.Circle((x, y), r, fill=False, color='red')
+            circle = plt.Circle((x, y), r, fill=False, color="red")
             self.ax.add_artist(circle)
 
         # Set plot limits
@@ -31,7 +48,7 @@ class TrajectoryVisualizer:
         self.ax.set_ylim(min(all_y) - margin, max(all_y) + margin)
 
         # Draw trajectory to each ball
-        for target in self.circles:
+        for i, target in enumerate(self.circles, 1):
             target_pos = (target[0], target[1])
 
             # Calculate trajectory
@@ -41,17 +58,27 @@ class TrajectoryVisualizer:
                 start_pos=self.shooting_point,
                 target_pos=target_pos,
                 initial_velocity=v0,
-                angle=theta
+                angle=theta,
             )
             calculator = TrajectoryCalculator(params)
             x, y = calculator.calculate_trajectory()
 
             # Draw trajectory point by point
-            line, = self.ax.plot([], [], 'b-')
-            for i in range(len(x)):
-                line.set_data(x[:i + 1], y[:i + 1])
-                plt.pause(0.001)
+            (line,) = self.ax.plot([], [], "b-", label=f"Shot {i}")
 
-            plt.pause(0.5)  # Pause between trajectories
+            # Determine animation step size based on trajectory length
+            step_size = max(1, len(x) // 50)  # Show trajectory in about 50 steps
 
+            for i in range(0, len(x), step_size):
+                line.set_data(x[: i + 1], y[: i + 1])
+                plt.pause(0.001)  # Faster animation
+
+                # Check if trajectory hits the target
+                if self._hits_circle(x[i], y[i], target):
+                    # Complete the line until the hit point
+                    line.set_data(x[: i + 1], y[: i + 1])
+                    plt.pause(0.2)  # Brief pause at hit
+                    break
+
+        self.ax.legend()
         plt.show()
