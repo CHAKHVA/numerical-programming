@@ -1,6 +1,6 @@
 import cv2
 import numpy as np
-from src.edge_detector import CannyEdgeDetector
+from src.detection.edge_detector import CannyEdgeDetector
 
 def test_canny_detector(image_path: str, params: dict):
     """Test Canny Edge Detector with given parameters and show steps."""

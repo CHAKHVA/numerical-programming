@@ -1,10 +1,8 @@
-from typing import Any
-
 import numpy as np
 
 
 class CannyEdgeDetector:
-    def __init__(self, low_threshold: float = 0.1, high_threshold: float = 0.3,
+    def __init__(self, low_threshold: float = 0.08, high_threshold: float = 0.25,
                  gaussian_kernel_size: int = 5, gaussian_sigma: float = 1.4):
         # Validate parameters
         if not 0 <= low_threshold <= high_threshold <= 1:
