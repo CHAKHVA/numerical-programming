@@ -1,11 +1,7 @@
-from typing import List, Tuple
-
 import numpy as np
 
 
 class PowerIterationSolver:
-    """Improved power iteration solver with shift-and-invert strategy."""
-
     def __init__(
         self, A: np.ndarray, W: np.ndarray, max_iter: int = 1000, tol: float = 1e-12
     ):
@@ -16,8 +12,7 @@ class PowerIterationSolver:
 
     def _shift_invert_iteration(
         self, sigma: float, v0: np.ndarray
-    ) -> Tuple[float, np.ndarray]:
-        """Shift-and-invert iteration with improved stability."""
+    ) -> tuple[float, np.ndarray]:
         A_shifted = self.A - sigma * self.W
         v = v0.copy()
 
@@ -48,14 +43,16 @@ class PowerIterationSolver:
 
     def find_eigenvalues(
         self, num_eigenvalues: int
-    ) -> Tuple[List[float], List[np.ndarray]]:
-        """Find multiple eigenvalues using shifted power iteration."""
+    ) -> tuple[list[float], list[np.ndarray]]:
         eigenvalues = []
         eigenvectors = []
         n = len(self.A)
 
         # Use different shifts to find different eigenvalues
-        shifts = np.linspace(1, 100, num_eigenvalues)  # Adjusted shift range
+        # Improved shift strategy using geometric progression
+        shifts = np.geomspace(
+            1, 200, num_eigenvalues
+        )  # Changed from linear to geometric spacing
 
         for i in range(num_eigenvalues):
             # Generate random initial vector
@@ -63,10 +60,10 @@ class PowerIterationSolver:
 
             # Make v0 orthogonal to previous eigenvectors
             for v in eigenvectors:
-                v0 = v0 - np.dot(v0, v) * v
+                v0 = v0 - (v @ (self.W @ v0)) * v  # Modified to use W-orthogonality
 
             # Normalize v0
-            v0 = v0 / np.sqrt(np.sum(v0 * v0))
+            v0 = v0 / np.sqrt(v0 @ (self.W @ v0))  # W-normalized
 
             # Find eigenvalue and eigenvector
             lambda_, v = self._shift_invert_iteration(shifts[i], v0)
@@ -74,9 +71,24 @@ class PowerIterationSolver:
             eigenvalues.append(lambda_)
             eigenvectors.append(v)
 
+            # Check orthogonality with previous eigenvectors
+            if i > 0:
+                self._check_orthogonality(v, eigenvectors[:-1])
+
         # Sort by eigenvalue
         idx = np.argsort(eigenvalues)
         eigenvalues = [eigenvalues[i] for i in idx]
         eigenvectors = [eigenvectors[i] for i in idx]
 
         return eigenvalues, eigenvectors
+
+    def _check_orthogonality(
+        self, v: np.ndarray, previous_vectors: list[np.ndarray]
+    ) -> None:
+        for i, prev_v in enumerate(previous_vectors):
+            inner_product = abs(v @ (self.W @ prev_v))
+            if inner_product > 1e-8:
+                print(
+                    f"Warning: Eigenvector {len(previous_vectors) + 1} not orthogonal to eigenvector {i + 1}"
+                )
+                print(f"Inner product: {inner_product:.2e}")

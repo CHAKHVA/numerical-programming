@@ -2,15 +2,25 @@ from typing import List
 
 import numpy as np
 
-from src.models.parameters import SturmLiouvilleParameters
 from src.solvers.finite_difference import FiniteDifference
+from src.solvers.parameters import SturmLiouvilleParameters
 from src.solvers.power_iteration import PowerIterationSolver
 from src.visualization.visualizer import SturmLiouvilleVisualizer
 
 
 def compute_boundary_errors(eigenfunctions: np.ndarray) -> List[float]:
     """Compute boundary condition errors for each eigenfunction."""
-    return [abs(ef[-1]) for ef in eigenfunctions]  # Error at x=π/2
+    # Check both boundary conditions
+    left_errors = [abs(ef[0]) for ef in eigenfunctions]  # Error at x=0
+    right_errors = [abs(ef[-1]) for ef in eigenfunctions]  # Error at x=π/2
+    return [(l + r) / 2 for l, r in zip(left_errors, right_errors)]
+
+
+def compute_analytical_eigenvalues(m: float, n: int) -> List[float]:
+    """
+    Compute first n analytical eigenvalues for the Sturm-Liouville problem.
+    """
+    return [(k * (k + 2 * m)) ** 2 for k in range(1, n + 1)]
 
 
 def main():
@@ -32,16 +42,24 @@ def main():
     print("Computing eigenvalues and eigenfunctions...")
     eigenvalues, eigenvectors = solver.find_eigenvalues(params.num_eigenvalues)
 
+    # Get analytical eigenvalues for comparison
+    analytical_eigenvalues = compute_analytical_eigenvalues(
+        params.m, params.num_eigenvalues
+    )
+
     # Convert to full domain eigenfunctions with proper normalization
     x = fd.x
     full_eigenfunctions = np.zeros((len(eigenvalues), len(x)))
 
     print("\nNormalizing eigenfunctions...")
     for i, v in enumerate(eigenvectors):
-        # Add boundary points
+        # Add boundary points (explicitly set to 0)
+        full_eigenfunctions[i, 0] = 0  # Boundary condition at x=0
         full_eigenfunctions[i, 1:-1] = v
-        # Normalize with weight function
-        weight = 1.0  # w(x) = 1 for this problem
+        full_eigenfunctions[i, -1] = 0  # Boundary condition at x=π/2
+
+        # Normalize with weight function w(x) = sin(x)
+        weight = np.sin(x)
         norm = np.sqrt(np.trapz(weight * full_eigenfunctions[i] ** 2, x))
         full_eigenfunctions[i] /= norm
 
@@ -61,10 +79,15 @@ def main():
     # Plot error analysis
     visualizer.plot_error_analysis(x, full_eigenfunctions, boundary_errors)
 
-    # Print results
-    print("\nComputed eigenvalues:")
-    for i, (ev, err) in enumerate(zip(eigenvalues, boundary_errors)):
-        print(f"λ_{i+1} = {ev:.6f} (boundary error: {err:.2e})")
+    # Print results and comparison with analytical solution
+    print("\nNumerical vs Analytical Eigenvalues:")
+    print("n  |  Numerical λ  |  Analytical λ  |  Relative Error  | Boundary Error")
+    print("-" * 65)
+    for i, (num, ana, err) in enumerate(
+        zip(eigenvalues, analytical_eigenvalues, boundary_errors)
+    ):
+        rel_error = abs(num - ana) / ana
+        print(f"{i+1:2d} | {num:12.6f} | {ana:12.6f} | {rel_error:14.2e} | {err:12.2e}")
 
     print("\nResults have been saved in the 'output' directory.")
 

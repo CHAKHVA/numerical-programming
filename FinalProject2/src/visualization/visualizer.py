@@ -7,15 +7,7 @@ import numpy as np
 
 
 class SturmLiouvilleVisualizer:
-    """Class for visualizing Sturm-Liouville solutions."""
-
     def __init__(self, output_dir: str = "output"):
-        """
-        Initialize visualizer.
-
-        Args:
-            output_dir: Directory to save plots and results
-        """
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(exist_ok=True)
 
@@ -26,15 +18,6 @@ class SturmLiouvilleVisualizer:
         eigenfunctions: np.ndarray,
         show: bool = True,
     ) -> None:
-        """
-        Plot eigenfunctions with corresponding eigenvalues.
-
-        Args:
-            x: Grid points
-            eigenvalues: List of eigenvalues
-            eigenfunctions: Array of eigenfunction values
-            show: Whether to display the plot
-        """
         plt.figure(figsize=(12, 8))
         colors = plt.cm.tab10(np.linspace(0, 1, len(eigenvalues)))
 
@@ -73,14 +56,6 @@ class SturmLiouvilleVisualizer:
     def save_results(
         self, x: np.ndarray, eigenvalues: List[float], eigenfunctions: np.ndarray
     ) -> None:
-        """
-        Save numerical results to JSON file.
-
-        Args:
-            x: Grid points
-            eigenvalues: List of eigenvalues
-            eigenfunctions: Array of eigenfunction values
-        """
         results = {
             "x_points": x.tolist(),
             "eigenvalues": eigenvalues,
@@ -93,26 +68,39 @@ class SturmLiouvilleVisualizer:
     def plot_error_analysis(
         self, x: np.ndarray, eigenfunctions: np.ndarray, boundary_errors: List[float]
     ) -> None:
-        """
-        Plot error analysis for boundary conditions and orthogonality.
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
 
-        Args:
-            x: Grid points
-            eigenfunctions: Array of eigenfunction values
-            boundary_errors: List of boundary condition errors
-        """
-        plt.figure(figsize=(10, 6))
-        plt.semilogy(
+        # Plot boundary errors
+        ax1.semilogy(
             range(1, len(boundary_errors) + 1),
             boundary_errors,
             "o-",
             label="Boundary Error",
         )
-        plt.grid(True, which="both", ls="-", alpha=0.2)
-        plt.xlabel("Eigenfunction Number")
-        plt.ylabel("Error (log scale)")
-        plt.title("Boundary Condition Error Analysis")
-        plt.legend()
+        ax1.grid(True, which="both", ls="-", alpha=0.2)
+        ax1.set_xlabel("Eigenfunction Number")
+        ax1.set_ylabel("Error (log scale)")
+        ax1.set_title("Boundary Condition Error Analysis")
+        ax1.legend()
+
+        # Plot orthogonality matrix
+        n = len(eigenfunctions)
+        orthogonality_matrix = np.zeros((n, n))
+        for i in range(n):
+            for j in range(n):
+                # Compute W-inner product using sin(x) weight
+                weight = np.sin(x)
+                orthogonality_matrix[i, j] = abs(
+                    np.trapezoid(weight * eigenfunctions[i] * eigenfunctions[j], x)
+                )
+
+        im = ax2.imshow(orthogonality_matrix, cmap="viridis", aspect="equal")
+        plt.colorbar(im, ax=ax2)
+        ax2.set_title("Orthogonality Check Matrix")
+        ax2.set_xlabel("Eigenfunction j")
+        ax2.set_ylabel("Eigenfunction i")
+
+        plt.tight_layout()
         plt.savefig(
             self.output_dir / "error_analysis.png", dpi=300, bbox_inches="tight"
         )
