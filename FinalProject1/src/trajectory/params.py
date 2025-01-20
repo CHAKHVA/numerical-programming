@@ -3,7 +3,6 @@ from dataclasses import dataclass
 
 @dataclass
 class TrajectoryParams:
-    """Parameters for trajectory calculation."""
     start_pos: tuple[float, float]
     target_pos: tuple[float, float]
     initial_velocity: float

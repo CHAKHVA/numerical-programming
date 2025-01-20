@@ -1,40 +1,44 @@
 import cv2
 import numpy as np
+
+from src.detection.circle_detector import HoughCircleDetector
 from src.detection.edge_detector import CannyEdgeDetector
 
-def test_canny_detector(image_path: str, params: dict):
-    """Test Canny Edge Detector with given parameters and show steps."""
+
+def test_detection(image_path: str):
     # Read image
     image = cv2.imread(image_path)
     if image is None:
         raise FileNotFoundError(f"Could not read image at {image_path}")
 
-    # Create detector with given parameters
-    detector = CannyEdgeDetector(
-        low_threshold=params['low_threshold'],
-        high_threshold=params['high_threshold'],
-        gaussian_kernel_size=params['kernel_size'],
-        gaussian_sigma=params['sigma']
-    )
+    # Detect edges and circles
+    canny = CannyEdgeDetector()
+    hough = HoughCircleDetector()
 
-    # Process each step
-    gray = detector.to_grayscale(image)
-    blurred = detector.apply_gaussian_blur(gray)
-    magnitude, direction, gx, gy = detector.compute_gradients(blurred)
-    suppressed = detector.non_maximum_suppression(magnitude, direction)
-    strong_edges, weak_edges = detector.double_threshold(suppressed)
-    final_edges = detector.edge_tracking(strong_edges, weak_edges)
+    # Get detections
+    edges = canny.detect(image)
+    circles = hough.detect(edges)
 
-    # Prepare images for display
-    steps = {
-        'Original': image,
-        'Grayscale': gray.astype(np.uint8),
-        'Gaussian Blur': blurred.astype(np.uint8),
-        'Gradient Magnitude': (magnitude / magnitude.max() * 255).astype(np.uint8),
-        'Non-maximum Suppression': (suppressed / suppressed.max() * 255).astype(np.uint8),
-        'Strong Edges': strong_edges.astype(np.uint8) * 255,
-        'Weak Edges': weak_edges.astype(np.uint8) * 255,
-        'Final Edges': final_edges.astype(np.uint8) * 255
-    }
+    # Print results
+    print(f"Detected {len(circles)} circles")
+    for i, (x, y, r) in enumerate(circles):
+        print(f"Ball {i+1}: center=({x}, {y}), radius={r}")
 
-    return steps
+    # Show images
+    cv2.imshow("Original", image)
+    cv2.imshow("Edges", edges.astype(np.uint8) * 255)
+
+    # Draw circles on original image
+    result = image.copy()
+    for x, y, r in circles:
+        cv2.circle(result, (x, y), r, (0, 255, 0), 2)
+        cv2.circle(result, (x, y), 2, (0, 0, 255), 3)
+
+    cv2.imshow("Detected Circles", result)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+if __name__ == "__main__":
+    for i in range(1, 6):
+        test_detection(f"images/test{i}.png")

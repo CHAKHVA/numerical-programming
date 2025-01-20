@@ -1,5 +1,3 @@
-from typing import List, Tuple
-
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -10,20 +8,18 @@ from .shooting import ShootingMethod
 
 class TrajectoryVisualizer:
     def __init__(
-        self, circles: List[Tuple[int, int, int]], shooting_point: Tuple[float, float]
+        self, circles: list[tuple[int, int, int]], shooting_point: tuple[float, float]
     ):
         self.circles = circles
         self.shooting_point = shooting_point
         self.fig, self.ax = plt.subplots(figsize=(10, 8))
 
-    def _hits_circle(self, x: float, y: float, circle: Tuple[int, int, int]) -> bool:
-        """Check if a point hits or enters the circle."""
+    def _hits_circle(self, x: float, y: float, circle: tuple[int, int, int]) -> bool:
         cx, cy, r = circle
         distance = np.sqrt((x - cx) ** 2 + (y - cy) ** 2)
         return distance <= r
 
     def animate(self):
-        """Animate trajectories from shooting point to each ball"""
         # Setup plot
         self.ax.set_aspect("equal")
         self.ax.grid(True)
@@ -67,17 +63,17 @@ class TrajectoryVisualizer:
             (line,) = self.ax.plot([], [], "b-", label=f"Shot {i}")
 
             # Determine animation step size based on trajectory length
-            step_size = max(1, len(x) // 50)  # Show trajectory in about 50 steps
+            step_size = max(1, len(x) // 50)
 
             for i in range(0, len(x), step_size):
                 line.set_data(x[: i + 1], y[: i + 1])
-                plt.pause(0.001)  # Faster animation
+                plt.pause(0.01)
 
                 # Check if trajectory hits the target
                 if self._hits_circle(x[i], y[i], target):
                     # Complete the line until the hit point
                     line.set_data(x[: i + 1], y[: i + 1])
-                    plt.pause(0.2)  # Brief pause at hit
+                    plt.pause(0.2)
                     break
 
         self.ax.legend()

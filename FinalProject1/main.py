@@ -7,7 +7,7 @@ from src.trajectory.visualizer import TrajectoryVisualizer
 
 def main():
     # Read image
-    image_path = "images/test4.png"
+    image_path = "images/test3.png"
     image = cv2.imread(image_path)
     if image is None:
         raise FileNotFoundError(f"Could not read image at {image_path}")

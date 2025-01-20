@@ -1,13 +1,16 @@
-import numpy as np
 import cv2
+import numpy as np
 
 
 class HoughCircleDetector:
-    def __init__(self, min_radius: int = 40, max_radius: int = 50,
-                 threshold: int = 15, step_radius: int = 1, step_theta: int = 5):
-        """
-        Initialize Hough Circle Detector with optimized default parameters.
-        """
+    def __init__(
+        self,
+        min_radius: int = 40,
+        max_radius: int = 50,
+        threshold: int = 15,
+        step_radius: int = 1,
+        step_theta: int = 5,
+    ):
         self.min_radius = min_radius
         self.max_radius = max_radius
         self.threshold = threshold
@@ -15,9 +18,6 @@ class HoughCircleDetector:
         self.step_theta = step_theta
 
     def detect(self, edge_image: np.ndarray) -> list[tuple[int, int, int]]:
-        """
-        Detect circles in edge image using improved Hough transform.
-        """
         height, width = edge_image.shape
         edge_points = np.where(edge_image > 0)
 
@@ -40,8 +40,12 @@ class HoughCircleDetector:
                 y_centers = (y - radius * sin_theta).astype(int)
 
                 # Filter valid coordinates
-                valid_points = (x_centers >= 0) & (x_centers < width) & \
-                               (y_centers >= 0) & (y_centers < height)
+                valid_points = (
+                    (x_centers >= 0)
+                    & (x_centers < width)
+                    & (y_centers >= 0)
+                    & (y_centers < height)
+                )
 
                 # Accumulate votes
                 x_valid = x_centers[valid_points]
@@ -62,14 +66,16 @@ class HoughCircleDetector:
                     break
 
                 # Find circle center
-                y_center, x_center = np.unravel_index(acc_layer.argmax(), acc_layer.shape)
+                y_center, x_center = np.unravel_index(
+                    acc_layer.argmax(), acc_layer.shape
+                )
 
                 # Add circle to results
                 circles.append((int(x_center), int(y_center), int(radius)))
 
                 # Suppress neighborhood to avoid multiple detections
-                y_idx, x_idx = np.ogrid[-radius:radius + 1, -radius:radius + 1]
-                mask_region = x_idx ** 2 + y_idx ** 2 <= (radius * 1.1) ** 2
+                y_idx, x_idx = np.ogrid[-radius : radius + 1, -radius : radius + 1]
+                mask_region = x_idx**2 + y_idx**2 <= (radius * 1.1) ** 2
 
                 # Calculate valid suppression region
                 y_start = max(0, y_center - radius)
@@ -88,9 +94,9 @@ class HoughCircleDetector:
 
         return circles
 
-    def _remove_overlapping_circles(self, circles: list[tuple[int, int, int]],
-                                    overlap_threshold: float = 0.5) -> list[tuple[int, int, int]]:
-        """Remove overlapping circles based on center distance and radius."""
+    def _remove_overlapping_circles(
+        self, circles: list[tuple[int, int, int]], overlap_threshold: float = 0.5
+    ) -> list[tuple[int, int, int]]:
         if not circles:
             return circles
 
@@ -117,8 +123,9 @@ class HoughCircleDetector:
         return filtered_circles
 
     @staticmethod
-    def draw_circles(image: np.ndarray, circles: list[tuple[int, int, int]]) -> np.ndarray:
-        """Draw detected circles with centers and radius."""
+    def draw_circles(
+        image: np.ndarray, circles: list[tuple[int, int, int]]
+    ) -> np.ndarray:
         result = image.copy()
         for x, y, r in circles:
             # Draw circle outline
