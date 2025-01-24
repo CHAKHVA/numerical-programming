@@ -5,7 +5,7 @@ import numpy as np
 class HoughCircleDetector:
     def __init__(
         self,
-        min_radius: int = 40,
+        min_radius: int = 10,
         max_radius: int = 50,
         threshold: int = 15,
         step_radius: int = 1,

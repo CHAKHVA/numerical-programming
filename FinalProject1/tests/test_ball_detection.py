@@ -13,7 +13,7 @@ def test_detection(image_path: str):
 
     # Detect edges and circles
     canny = CannyEdgeDetector()
-    hough = HoughCircleDetector()
+    hough = HoughCircleDetector(min_radius=10)
 
     # Get detections
     edges = canny.detect(image)
@@ -40,5 +40,4 @@ def test_detection(image_path: str):
 
 
 if __name__ == "__main__":
-    for i in range(1, 6):
-        test_detection(f"images/test{i}.png")
+    test_detection("images/3.jpg")

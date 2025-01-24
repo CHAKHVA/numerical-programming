@@ -23,7 +23,7 @@ class ShootingMethod:
         velocities = np.linspace(
             np.sqrt(9.81 * distance) * 0.5, np.sqrt(9.81 * distance) * 1.5, 50
         )
-        angles = np.linspace(0, np.pi / 2, 20)
+        angles = np.linspace(0, np.pi, 50)
 
         for v0 in velocities:
             for theta in angles:
