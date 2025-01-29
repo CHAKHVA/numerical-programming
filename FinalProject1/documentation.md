@@ -164,7 +164,7 @@ For finding initial velocities to hit targets:
 
 ## 4. Project Structure
 
-```
+```shell
 projectile_simulation/
 ├── src/
 │   ├── constants.py
