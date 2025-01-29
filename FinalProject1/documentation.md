@@ -1,152 +1,259 @@
-# Ball Detection and Trajectory Simulation Project
+# Projectile Motion and Shape Detection Project Documentation
 
-## Problem Statement
+## Table of Contents
 
-This project implements a ball detection and trajectory simulation system that:
+1. [Project Overview](#1-project-overview)
+2. [Image Processing](#2-image-processing)
+3. [Numerical Methods](#3-numerical-methods)
+4. [Project Structure](#4-project-structure)
+5. [Mathematical Analysis](#5-mathematical-analysis)
+6. [Implementation Details](#6-implementation-details)
+7. [Performance Optimization](#7-performance-optimization)
 
-1. Detects balls in an input image using edge detection and circle detection
-2. Simulates shooting trajectories from a fixed point to each detected ball
-3. Visualizes the trajectories using projectile motion physics
+## 1. Project Overview
 
-## Mathematical Model
+### 1.1 Project Description
 
-### Ball Detection
+This project combines computer vision and numerical methods to simulate projectile motion targeting detected shapes in an image. The system:
 
-1. **Edge Detection (Canny Algorithm)**:
-   - Gaussian smoothing: $G(x,y) = \frac{1}{2\pi\sigma^2}e^{-\frac{x^2+y^2}{2\sigma^2}}$
-   - Gradient calculation using Sobel operators
-   - Non-maximum suppression
-   - Double thresholding and edge tracking
+1. Detects shapes (circles and ellipses) in an input image
+2. Calculates trajectories to hit each target using projectile motion
+3. Visualizes the trajectories and targets
 
-2. **Circle Detection (Hough Transform)**:
-   - Circle equation: $(x - x_c)^2 + (y - y_c)^2 = r^2$
-   - Parameter space accumulation
-   - Peak detection for circle centers
+### 1.2 Core Components
 
-### Trajectory Simulation
+- Image processing and shape detection
+- Numerical methods for solving ODEs
+- Projectile motion simulation
+- Trajectory visualization
 
-1. **Projectile Motion Equations**:
+## 2. Image Processing
 
-   ```
-   x(t) = x₀ + v₀cos(θ)t
-   y(t) = y₀ + v₀sin(θ)t - ½gt²
-   ```
+### 2.1 Edge Detection (Canny Algorithm)
 
-   where:
-   - (x₀, y₀): Initial position
-   - v₀: Initial velocity
-   - θ: Launch angle
-   - g: Gravitational acceleration (9.81 m/s²)
-   - t: Time
+The Canny edge detection algorithm consists of five steps:
 
-2. **Boundary Conditions**:
-   - Initial position: Fixed shooting point (x₀, y₀)
-   - Target position: Center of detected ball (x_target, y_target)
-   - y(t) ≥ 0 (Above ground constraint)
+1. **Gaussian Blur**
 
-## Numerical Methods
-
-### Shooting Method Implementation
-
-The shooting method finds optimal initial velocity (v₀) and angle (θ) to hit targets:
-
-1. **Parameter Estimation**:
-   - Initial velocity range: `[0.5 * √(gd), 1.5 * √(gd)]` where d is target distance
-   - Angle range: [0, π/2] radians
-
-2. **Grid Search Algorithm**:
-   - Sample velocities and angles in ranges
-   - Calculate trajectories for each combination
-   - Find parameters minimizing distance to target
-   - Stop when within tolerance or best parameters found
-
-3. **Error Analysis**:
-   - Distance error: `√[(x - x_target)² + (y - y_target)²]`
-   - Tolerance: 0.1 units
-   - Parameters refined through grid search
-
-### Numerical Properties
-
-1. **Discretization**:
-   - Time step: 0.01s for trajectory calculation
-   - Angular step: π/40 for angle search
-   - Velocity step: Adaptive based on distance
-
-2. **Stability**:
-   - Time step chosen small enough for stable trajectories
-   - Grid search ensures robust parameter finding
-   - Parameter ranges prevent unrealistic solutions
-
-## Algorithm
-
-1. **Ball Detection**:
-
-   ```
-   Input: Image
-   1. Apply Gaussian blur
-   2. Compute image gradients
-   3. Apply non-maximum suppression
-   4. Perform double thresholding
-   5. Track edges by hysteresis
-   6. Apply Hough transform for circles
-   Output: List of (x, y, r) for detected balls
+   ```math
+   G(x,y) = (1/(2πσ²))e^(-(x²+y²)/(2σ²))
    ```
 
-2. **Trajectory Calculation**:
+   where σ is the standard deviation.
 
+2. **Gradient Calculation**
+   Using Sobel operators:
+
+   ```math
+   Gx = [[-1, 0, 1],
+         [-2, 0, 2],
+         [-1, 0, 1]]
+
+   Gy = [[-1, -2, -1],
+         [ 0,  0,  0],
+         [ 1,  2,  1]]
    ```
-   Input: Shooting point, target positions
-   For each target:
-   1. Calculate target distance
-   2. Define parameter search ranges
-   3. Grid search for optimal v₀ and θ
-   4. Calculate trajectory with best parameters
-   Output: List of trajectory points
+
+   Magnitude and direction:
+
+   ```math
+   G = √(Gx² + Gy²) \\
+   θ = arctan(Gy/Gx)
    ```
 
-## Test Cases
+3. **Non-Maximum Suppression**
+   - Compare each pixel with neighbors in gradient direction
+   - Keep only local maxima
 
-### Ball Detection Tests
+4. **Double Thresholding**
 
-1. **Simple Test**: Image with clear, non-overlapping balls
-2. **Complex Test**: Image with varying ball sizes and textures
-3. **Edge Cases**:
-   - Different lighting conditions
-   - Overlapping balls
-   - Various backgrounds
+   ```python
+   if pixel >= highThreshold:
+       mark as strong edge
+   else if pixel >= lowThreshold:
+       mark as weak edge
+   ```
 
-### Trajectory Tests
+5. **Hysteresis**
+   - Connect weak edges to strong edges
+   - Remove isolated weak edges
 
-1. **Horizontal Shots**: Targets at same height
-2. **Upward Shots**: Targets above shooting point
-3. **Distance Tests**: Near and far targets
-4. **Precision Test**: Multiple shots to same target
+### 2.2 Shape Detection
 
-## Results Validation
+#### 2.2.1 Contour Detection
 
-1. **Ball Detection**:
-   - Compare detected circles with known ball positions
-   - Verify radius consistency
-   - Check edge detection accuracy
+- Follow edges to form continuous contours
+- Filter contours based on:
 
-2. **Trajectory Simulation**:
-   - Verify trajectories reach targets within tolerance
-   - Check physical plausibility of solutions
-   - Validate parameter ranges
+  ```python
+  min_area = image_size * 0.001  # 0.1% of image size
+  max_area = image_size * 0.1    # 10% of image size
+  ```
 
-## Test Data Description
+#### 2.2.2 Shape Classification
 
-Test images include:
+- **Ellipse Detection**:
+  - Minimum 5 points required
+  - Aspect ratio check: 0.5 ≤ major_axis/minor_axis ≤ 2.0
 
-1. `test1.png`: Simple balls with textures background
-2. `test2.png`: More Balls with textured background
-3. `test3.png`: More Balls with simple background
-4. `test4.png`: More Balls with simple background
-5. `test3.png`: More Balls with different background
-6. `test4.png`: More Balls with different background
+- **Circle Detection**:
+  - Area comparison: 0.8 ≤ area/circular_area ≤ 1.2
+  - Where circular_area = πr²
 
-## Implementation Details
+## 3. Numerical Methods
 
-- Programming Language: Python
-- Key Libraries: NumPy, OpenCV, Matplotlib
-- Project Structure: Modular design with separate classes for detection and simulation
+### 3.1 Differential Equations
+
+The projectile motion is described by:
+
+```math
+d²x/dt² = 0 \\
+d²y/dt² = -g
+```
+
+where g is the acceleration due to gravity (9.81 m/s²).
+
+As a system of first-order ODEs:
+
+```math
+dx/dt = vx \\
+dy/dt = vy \\
+dvx/dt = 0 \\
+dvy/dt = -g
+```
+
+### 3.2 Numerical Integration Methods
+
+#### 3.2.1 Euler Method
+
+```python
+yₙ₊₁ = yₙ + h·f(tₙ, yₙ)
+```
+
+- Local truncation error: O(h²)
+- Global truncation error: O(h)
+
+#### 3.2.2 RK4 Method
+
+```python
+k₁ = f(tₙ, yₙ)
+k₂ = f(tₙ + h/2, yₙ + h·k₁/2)
+k₃ = f(tₙ + h/2, yₙ + h·k₂/2)
+k₄ = f(tₙ + h, yₙ + h·k₃)
+yₙ₊₁ = yₙ + (h/6)·(k₁ + 2k₂ + 2k₃ + k₄)
+```
+
+- Local truncation error: O(h⁵)
+- Global truncation error: O(h⁴)
+
+### 3.3 Shooting Method
+
+For finding initial velocities to hit targets:
+
+1. Initial guess for v₀ = (vx₀, vy₀)
+2. Solve ODE system using RK4
+3. Compare final position with target
+4. Update guess:
+
+   ```python
+   vx₀_new = vx₀ + (target_x - x_final)/10
+   vy₀_new = vy₀ + (target_y - y_final)/10
+   ```
+
+5. Repeat until convergence or max iterations
+
+## 4. Project Structure
+
+```
+projectile_simulation/
+├── src/
+│   ├── constants.py
+│   ├── core/
+│   │   ├── image_processor.py
+│   │   └── shooting_method.py
+│   ├── detection/
+│   │   ├── edge_detector.py
+│   │   └── circle_detector.py
+│   ├── trajectory/
+│   │   ├── calculator.py
+│   │   ├── params.py
+│   │   ├── shooting.py
+│   │   └── visualizer.py
+│   └── simulation.py
+├── main.py
+└── documentation.md
+```
+
+## 5. Mathematical Analysis
+
+### 5.1 Error Analysis
+
+For RK4 method:
+
+```math
+Local Error = O(h⁵) \\
+Global Error = O(h⁴)
+```
+
+Error sources:
+
+1. Numerical integration error
+2. Shooting method convergence
+3. Discretization error
+
+### 5.2 Convergence Analysis
+
+Shooting method convergence depends on:
+
+1. Initial guess quality
+2. Update factor (1/10)
+3. Target position relative to launch point
+
+## 6. Implementation Details
+
+### 6.1 Optimization Techniques
+
+1. **Image Processing**:
+   - Vectorized operations
+   - Early filtering of contours
+   - Efficient shape validation
+
+2. **Numerical Methods**:
+   - Optimized RK4 implementation
+   - Adaptive step size control
+   - Efficient memory usage
+
+### 6.2 Parameters and Tuning
+
+Key parameters that affect performance:
+
+```python
+GAUSSIAN_KERNEL_SIZE = (5, 5)
+GAUSSIAN_SIGMA = 1.0
+CANNY_LOW_THRESHOLD = 50
+CANNY_HIGH_THRESHOLD = 150
+CONTOUR_EPSILON_FACTOR = 0.02
+ELLIPSE_MIN_POINTS = 5
+```
+
+## 7. Performance Optimization
+
+### 7.1 Shape Detection Optimization
+
+1. Preprocessing with bilateral filter and CLAHE
+2. Area-based filtering
+3. Distance-based duplicate removal
+4. Aspect ratio validation
+
+### 7.2 Numerical Computation Optimization
+
+1. Vectorized operations
+2. Efficient memory management
+3. Early termination conditions
+4. Optimized convergence criteria
+
+### 7.3 Visualization Optimization
+
+1. Efficient trajectory animation
+2. Batch plotting operations
+3. Memory-efficient drawing
