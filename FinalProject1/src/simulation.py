@@ -1,6 +1,6 @@
 from .constants import DEFAULT_INITIAL_POSITION, DEFAULT_INITIAL_VELOCITY
 from .core.image_processor import ImageProcessor
-from .core.ode_solver import ODESolver
+from .core.ode_solver import ODESolver, SolverMethod
 from .core.shooting_method import ShootingMethod
 from .models.shape import Shape
 from .visualization.visualizer import Visualizer
@@ -44,6 +44,7 @@ class ProjectileSimulation:
             target_y,
             DEFAULT_INITIAL_POSITION,
             DEFAULT_INITIAL_VELOCITY,
+            solver_method=SolverMethod.RK4,
         )
 
         if trajectory is not None:
