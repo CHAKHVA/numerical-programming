@@ -43,7 +43,7 @@ class ProjectileSimulation:
             target_x,
             target_y,
             DEFAULT_INITIAL_POSITION,
-            DEFAULT_INITIAL_VELOCITY.copy(),
+            DEFAULT_INITIAL_VELOCITY,
         )
 
         if trajectory is not None:
