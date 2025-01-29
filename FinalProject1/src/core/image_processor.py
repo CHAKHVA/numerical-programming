@@ -212,7 +212,7 @@ class CustomImageProcessor:
                         shapes.append(
                             Shape("ellipse", (x, y), (major_axis / 2, minor_axis / 2))
                         )
-                except:
+                except cv2.error:
                     continue
             else:
                 # Fit circle only if the contour is roughly circular
