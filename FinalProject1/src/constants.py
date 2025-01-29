@@ -3,11 +3,12 @@ GRAVITY = 9.81  # Acceleration due to gravity (m/s^2)
 
 # Image processing constants
 GAUSSIAN_KERNEL_SIZE = (5, 5)
-GAUSSIAN_SIGMA = 0
+GAUSSIAN_SIGMA = 1.0
 CANNY_LOW_THRESHOLD = 50
 CANNY_HIGH_THRESHOLD = 150
 CONTOUR_EPSILON_FACTOR = 0.01
 ELLIPSE_MIN_POINTS = 5
+CUSTOM_PROCESSOR_METHOD = 1
 
 # Numerical method constants
 RK4_STEP_SIZE = 0.1

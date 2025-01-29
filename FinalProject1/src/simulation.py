@@ -1,5 +1,9 @@
-from .constants import DEFAULT_INITIAL_POSITION, DEFAULT_INITIAL_VELOCITY
-from .core.image_processor import ImageProcessor
+from .constants import (
+    CUSTOM_PROCESSOR_METHOD,
+    DEFAULT_INITIAL_POSITION,
+    DEFAULT_INITIAL_VELOCITY,
+)
+from .core.image_processor import CustomImageProcessor, ImageProcessor
 from .core.ode_solver import ODESolver, SolverMethod
 from .core.shooting_method import ShootingMethod
 from .models.shape import Shape
@@ -10,7 +14,11 @@ class ProjectileSimulation:
     """Main simulation class"""
 
     def __init__(self, image_path: str):
-        self.image_processor = ImageProcessor(image_path)
+        self.image_processor = (
+            CustomImageProcessor(image_path)
+            if CUSTOM_PROCESSOR_METHOD
+            else ImageProcessor(image_path)
+        )
         self.ode_solver = ODESolver()
         self.shooting_method = ShootingMethod(self.ode_solver)
         self.visualizer = None
