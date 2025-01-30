@@ -29,76 +29,89 @@ This project combines computer vision and numerical methods to simulate projecti
 
 ## 2. Image Processing
 
-### 2.1 Edge Detection (Canny Algorithm)
+### 2.1 Custom Canny Edge Detection
 
-The Canny edge detection algorithm consists of five steps:
+The project implements a custom Canny edge detection algorithm with the following steps:
 
-1. **Gaussian Blur**
-
-   ```math
-   G(x,y) = (1/(2πσ²))e^(-(x²+y²)/(2σ²))
-   ```
-
-   where σ is the standard deviation.
-
-2. **Gradient Calculation**
-   Using Sobel operators:
-
-   ```math
-   Gx = [[-1, 0, 1],
-         [-2, 0, 2],
-         [-1, 0, 1]]
-
-   Gy = [[-1, -2, -1],
-         [ 0,  0,  0],
-         [ 1,  2,  1]]
-   ```
-
-   Magnitude and direction:
-
-   ```math
-   G = √(Gx² + Gy²) \\
-   θ = arctan(Gy/Gx)
-   ```
-
-3. **Non-Maximum Suppression**
-   - Compare each pixel with neighbors in gradient direction
-   - Keep only local maxima
-
-4. **Double Thresholding**
+1. **Gradient Computation**
 
    ```python
-   if pixel >= highThreshold:
-       mark as strong edge
-   else if pixel >= lowThreshold:
-       mark as weak edge
+   # Sobel kernels for x and y directions
+   kernel_x = [[-1, 0, 1],
+               [-2, 0, 2],
+               [-1, 0, 1]]
+   
+   kernel_y = [[-1, -2, -1],
+               [ 0,  0,  0],
+               [ 1,  2,  1]]
    ```
 
-5. **Hysteresis**
-   - Connect weak edges to strong edges
-   - Remove isolated weak edges
+   - Manual convolution with Sobel kernels
+   - Computes gradient magnitude and direction
+   - Returns `magnitude = √(Gx² + Gy²)` and `direction = arctan(Gy/Gx)`
 
-### 2.2 Shape Detection
+2. **Non-Maximum Suppression**
+   - Quantizes gradient directions into 4 angles (0°, 45°, 90°, 135°)
+   - Compares each pixel with neighbors along gradient direction
+   - Keeps only local maxima to thin edges
 
-#### 2.2.1 Contour Detection
+   ```python
+   if pixel_value >= max(neighbors_in_gradient_direction):
+       keep_pixel
+   else:
+       suppress_pixel
+   ```
 
-- Follow edges to form continuous contours
-- Filter contours based on:
+3. **Double Thresholding**
+   - Classifies edges as strong (255) or weak (128)
+   - Uses two thresholds:
 
-  ```python
-  min_area = image_size * 0.0001  # 0.01% of image size
-  max_area = image_size * 0.5    # 50% of image size
-  ```
+     ```python
+     if pixel >= high_threshold:
+         strong_edge = 255
+     elif pixel >= low_threshold:
+         weak_edge = 128
+     else:
+         non_edge = 0
+     ```
 
-#### 2.2.2 Shape Classification
+4. **Edge Tracking by Hysteresis**
+   - Keeps strong edges
+   - Connects weak edges only if they connect to strong edges
+   - Uses 8-connected neighborhood check
+   - Iterates until no more changes occur
 
-- **Ellipse Detection**:
-  - Minimum 5 points required
-  - Aspect ratio check: 0.5 ≤ major_axis/minor_axis ≤ 2.0
+### 2.2 Shape Detection Pipeline
 
-- **Circle Detection**:
-  - Area comparison: 0.8 ≤ area/circular_area ≤ 1.2
-  - Where circular_area = πr²
+1. **Image Preprocessing**
+
+   ```python
+   gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+   blurred = cv2.GaussianBlur(gray, GAUSSIAN_KERNEL_SIZE, GAUSSIAN_SIGMA)
+   ```
+
+2. **Edge Detection**
+   - Uses custom Canny implementation
+   - Parameters controlled through constants:
+
+     ```python
+     CANNY_LOW_THRESHOLD = 50
+     CANNY_HIGH_THRESHOLD = 150
+     ```
+
+3. **Contour Detection**
+   - Finds external contours from edge map
+   - Approximates contours with Douglas-Peucker algorithm
+
+   ```python
+   epsilon = CONTOUR_EPSILON_FACTOR * perimeter
+   approx = cv2.approxPolyDP(contour, epsilon, True)
+   ```
+
+4. **Shape Classification**
+   - Ellipses: contours with ≥ 5 points
+   - Circles: remaining contours
+   - Stores positions in mathematical coordinates (y-axis inverted)
 
 ## 3. Numerical Methods
 
@@ -157,7 +170,7 @@ yₙ₊₁ = yₙ + h/2·(k₁ + k₂)
 - Local Error: O(h³)
 - Global Error: O(h²)
 
-#### 3.2.3 RK2 Method (Heun's Method)
+#### 3.2.3 RK2 Method
 
 ```python
 k₁ = f(tₙ, yₙ)
@@ -292,12 +305,17 @@ ELLIPSE_MIN_POINTS = 5
 
 ## 7. Performance Optimization
 
-### 7.1 Shape Detection Optimization
+### 7.1 Image Processing Optimization
 
-1. Preprocessing with bilateral filter and CLAHE
-2. Area-based filtering
-3. Distance-based duplicate removal
-4. Aspect ratio validation
+1. Custom Canny implementation:
+   - Manual gradient computation for better control
+   - Optimized non-maximum suppression
+   - Efficient hysteresis with early termination
+
+2. Shape detection improvements:
+   - Adaptive thresholding
+   - Contour filtering
+   - Efficient coordinate conversion
 
 ### 7.2 Numerical Computation Optimization
 
