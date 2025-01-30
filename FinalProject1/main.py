@@ -4,7 +4,7 @@ from src.simulation import ProjectileSimulation
 
 def main():
     # Get the path to the image file
-    image_path = "images/3.jpg"  # You can modify this path as needed
+    image_path = "images/test3.png"
 
     # Create and run simulation
     try:
