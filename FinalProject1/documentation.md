@@ -86,8 +86,8 @@ The Canny edge detection algorithm consists of five steps:
 - Filter contours based on:
 
   ```python
-  min_area = image_size * 0.001  # 0.1% of image size
-  max_area = image_size * 0.1    # 10% of image size
+  min_area = image_size * 0.0001  # 0.01% of image size
+  max_area = image_size * 0.5    # 50% of image size
   ```
 
 #### 2.2.2 Shape Classification
@@ -104,25 +104,35 @@ The Canny edge detection algorithm consists of five steps:
 
 ### 3.1 Differential Equations
 
-The projectile motion is described by:
+The projectile motion with air resistance is described by:
 
 ```math
-d²x/dt² = 0 \\
-d²y/dt² = -g
+d²x/dt² = -(k/m)v·vx \\
+d²y/dt² = -g - (k/m)v·vy
 ```
 
-where g is the acceleration due to gravity (9.81 m/s²).
+where:
+
+- g is the acceleration due to gravity (9.81 m/s²)
+- k = ½ρCᴅA (air resistance coefficient)
+- ρ is air density (1.225 kg/m³)
+- Cᴅ is drag coefficient (0.47 for a sphere)
+- A is cross-sectional area (πr² for a sphere)
+- v is velocity magnitude √(vx² + vy²)
+- m is projectile mass (0.1 kg)
 
 As a system of first-order ODEs:
 
 ```math
 dx/dt = vx \\
 dy/dt = vy \\
-dvx/dt = 0 \\
-dvy/dt = -g
+dvx/dt = -(k/m)v·vx \\
+dvy/dt = -g - (k/m)v·vy
 ```
 
 ### 3.2 Numerical Integration Methods
+
+Four methods are implemented and compared:
 
 #### 3.2.1 Euler Method
 
@@ -130,10 +140,36 @@ dvy/dt = -g
 yₙ₊₁ = yₙ + h·f(tₙ, yₙ)
 ```
 
-- Local truncation error: O(h²)
-- Global truncation error: O(h)
+- Simplest method
+- Local Error: O(h²)
+- Global Error: O(h)
+- Less accurate but fastest
 
-#### 3.2.2 RK4 Method
+#### 3.2.2 Improved Euler Method
+
+```python
+k₁ = f(tₙ, yₙ)
+k₂ = f(tₙ + h, yₙ + h·k₁)
+yₙ₊₁ = yₙ + h/2·(k₁ + k₂)
+```
+
+- Better accuracy than basic Euler
+- Local Error: O(h³)
+- Global Error: O(h²)
+
+#### 3.2.3 RK2 Method (Heun's Method)
+
+```python
+k₁ = f(tₙ, yₙ)
+k₂ = f(tₙ + 2h/3, yₙ + 2h·k₁/3)
+yₙ₊₁ = yₙ + h/4·(k₁ + 3k₂)
+```
+
+- Balanced between accuracy and speed
+- Local Error: O(h³)
+- Global Error: O(h²)
+
+#### 3.2.4 RK4 Method
 
 ```python
 k₁ = f(tₙ, yₙ)
@@ -143,45 +179,63 @@ k₄ = f(tₙ + h, yₙ + h·k₃)
 yₙ₊₁ = yₙ + (h/6)·(k₁ + 2k₂ + 2k₃ + k₄)
 ```
 
-- Local truncation error: O(h⁵)
-- Global truncation error: O(h⁴)
+- Most accurate method
+- Local Error: O(h⁵)
+- Global Error: O(h⁴)
+- Default method for simulation
 
 ### 3.3 Shooting Method
 
-For finding initial velocities to hit targets:
+Two update strategies are implemented for finding initial velocities:
 
-1. Initial guess for v₀ = (vx₀, vy₀)
-2. Solve ODE system using RK4
-3. Compare final position with target
-4. Update guess:
+#### 3.3.1 Fixed Update Strategy
 
-   ```python
-   vx₀_new = vx₀ + (target_x - x_final)/10
-   vy₀_new = vy₀ + (target_y - y_final)/10
-   ```
+- Constant learning rate
+- Simple and reliable
+- May be slower to converge
+- Update rule: `v₀ += error * learning_rate`
 
-5. Repeat until convergence or max iterations
+#### 3.3.2 Adaptive Update Strategy
+
+- Dynamic learning rate adjustment
+- Faster convergence when near solution
+- More robust to different target positions
+- Update rules:
+
+  ```python
+  if current_error < previous_error:
+      learning_rate *= 1.1  # Increase rate
+  else:
+      learning_rate *= 0.5  # Decrease rate
+  v₀ += error * learning_rate
+  ```
+
+Performance comparison based on test results:
+
+- Adaptive strategy generally achieves better convergence rates
+- Fixed strategy may be more stable for simple trajectories
+- RK4 with adaptive strategy provides best overall accuracy
+- Convergence rates and errors are saved in `tests/results/` for analysis
 
 ## 4. Project Structure
 
 ```shell
 projectile_simulation/
+├── images/                    # Directory containing input images
 ├── src/
-│   ├── constants.py
+│   ├── constants.py          # Global constants and configuration
 │   ├── core/
 │   │   ├── image_processor.py
+│   │   ├── ode_solver.py
 │   │   └── shooting_method.py
-│   ├── detection/
-│   │   ├── edge_detector.py
-│   │   └── circle_detector.py
-│   ├── trajectory/
-│   │   ├── calculator.py
-│   │   ├── params.py
-│   │   ├── shooting.py
-│   │   └── visualizer.py
-│   └── simulation.py
-├── main.py
-└── documentation.md
+│   ├── models/
+│   │   └── shape.py         # Shape data model
+│   ├── visualization/
+│   │   └── visualizer.py    # Plotting and animation
+│   └── simulation.py        # Main simulation logic
+├── main.py                  # Entry point with parallel processing
+├── requirements.txt         # Project dependencies
+└── documentation.md        # Project documentation
 ```
 
 ## 5. Mathematical Analysis
