@@ -2,7 +2,13 @@ from enum import Enum
 
 import numpy as np
 
-from src.constants import GRAVITY
+from src.constants import (
+    AIR_DENSITY,
+    DRAG_COEFFICIENT,
+    GRAVITY,
+    PROJECTILE_MASS,
+    PROJECTILE_RADIUS,
+)
 
 
 class SolverMethod(Enum):
@@ -123,7 +129,7 @@ class ODESolver:
 
     def projectile_motion(self, t: float, y: np.ndarray) -> np.ndarray:
         """
-        Projectile motion equations
+        Projectile motion equations with air resistance
 
         Args:
             t: Time (unused in this case)
@@ -133,7 +139,23 @@ class ODESolver:
             Derivatives [dx/dt, dy/dt, dvx/dt, dvy/dt]
         """
         _, _, vx, vy = y
-        return np.array([vx, vy, 0, -self.g])
+
+        # Calculate velocity magnitude
+        v = np.sqrt(vx**2 + vy**2)
+
+        # Air resistance force calculation
+        area = np.pi * PROJECTILE_RADIUS**2
+        drag_force = 0.5 * AIR_DENSITY * DRAG_COEFFICIENT * area * v**2
+
+        # Calculate acceleration components due to drag
+        if v > 0:  # Avoid division by zero
+            ax = -(drag_force / PROJECTILE_MASS) * (vx / v)
+            ay = -(drag_force / PROJECTILE_MASS) * (vy / v) - self.g
+        else:
+            ax = 0
+            ay = -self.g
+
+        return np.array([vx, vy, ax, ay])
 
     @property
     def available_methods(self) -> list[str]:

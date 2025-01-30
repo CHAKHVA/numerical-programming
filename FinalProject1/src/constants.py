@@ -1,5 +1,9 @@
 # Physical constants
 GRAVITY = 9.81  # Acceleration due to gravity (m/s^2)
+AIR_DENSITY = 1.225  # Air density (kg/m^3)
+DRAG_COEFFICIENT = 0.47  # Drag coefficient for a sphere
+PROJECTILE_MASS = 0.1  # Mass of projectile (kg)
+PROJECTILE_RADIUS = 0.02  # Radius of projectile (m)
 
 # Image processing constants
 GAUSSIAN_KERNEL_SIZE = (5, 5)
