@@ -1,3 +1,4 @@
+from src.core.ode_solver import SolverMethod
 from src.simulation import ProjectileSimulation
 
 
@@ -7,7 +8,7 @@ def main():
 
     # Create and run simulation
     try:
-        simulation = ProjectileSimulation(image_path)
+        simulation = ProjectileSimulation(image_path, solver_method=SolverMethod.RK4)
         simulation.run()
     except Exception as e:
         print(f"Error running simulation: {e}")

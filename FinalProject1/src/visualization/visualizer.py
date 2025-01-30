@@ -30,6 +30,7 @@ class Visualizer:
         plt.ylabel("Vertical Distance (pixels)")
         plt.title("Projectile Motion to Hit Targets")
         plt.grid(True, linestyle="--", alpha=GRID_ALPHA)
+        plt.gca().set_aspect("equal")
 
     def plot_target(self, shape: Shape) -> None:
         """Plot a single target"""
@@ -61,14 +62,17 @@ class Visualizer:
             )
             plt.pause(TRAJECTORY_ANIMATION_PAUSE)
 
-    def add_trajectory_legend(self, shape: Shape, index: int) -> None:
-        """Add trajectory to legend"""
+    def add_trajectory_to_legend(self, shape: Shape, index: int) -> None:
+        """Add trajectory to legend (without showing it)"""
         plt.plot([], [], "b:", label=f"Target {index}: {shape}")
-        plt.legend()
 
     def pause_between_targets(self) -> None:
         """Pause between target animations"""
         plt.pause(TARGET_PAUSE)
+
+    def show_legend(self) -> None:
+        """Display the legend"""
+        plt.legend()
 
     def show(self) -> None:
         """Display the plot"""

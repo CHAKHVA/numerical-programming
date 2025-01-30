@@ -17,7 +17,7 @@ class SolverMethod(Enum):
     EULER = "euler"
     RK4 = "rk4"
     IMPROVED_EULER = "improved_euler"
-    RK2 = "rk2"  # 2nd order Runge-Kutta (Heun's method)
+    RK2 = "rk2"
 
 
 class ODESolver:
@@ -75,7 +75,7 @@ class ODESolver:
     def _improved_euler(
         self, f: callable, t0: float, y0: np.ndarray, h: float, n: int
     ) -> tuple[np.ndarray, np.ndarray]:
-        """Improved Euler method (Heun's method)"""
+        """Improved Euler method"""
         t = np.zeros(n + 1)
         y = np.zeros((n + 1, len(y0)))
         t[0] = t0
