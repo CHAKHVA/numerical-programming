@@ -17,9 +17,6 @@ def detect_ball(frame):
 
     # Create and clean up mask
     mask = cv2.inRange(hsv, lower_bound, upper_bound)
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.erode(mask, kernel, iterations=1)
-    mask = cv2.dilate(mask, kernel, iterations=2)
 
     # Find contours
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
