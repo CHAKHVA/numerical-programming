@@ -117,7 +117,7 @@ class TrajectoryAnimator:
             )
 
         frames = max(len(original_trajectory), len(intercept_trajectory))
-        anim = animation.FuncAnimation(
+        _ = animation.FuncAnimation(
             fig,
             animate,
             init_func=init,
