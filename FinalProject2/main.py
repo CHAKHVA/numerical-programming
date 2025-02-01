@@ -1,137 +1,52 @@
-import cv2
-import matplotlib.pyplot as plt
+"""Main execution file for ball trajectory simulation."""
+
 import numpy as np
 
-
-def detect_ball(frame):
-    """
-    Detect a blue ball in a frame and return its position and radius.
-    """
-    # Preprocess frame
-    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-
-    # HSV range for blue ball
-    lower_bound = np.array([100, 50, 50])
-    upper_bound = np.array([130, 255, 255])
-
-    # Create and clean up mask
-    mask = cv2.inRange(hsv, lower_bound, upper_bound)
-
-    # Find contours
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Find the ball among contours
-    for cnt in contours:
-        area = cv2.contourArea(cnt)
-        if area < 100:  # Minimum area threshold
-            continue
-
-        perimeter = cv2.arcLength(cnt, True)
-        circularity = (
-            (4 * np.pi * area / (perimeter * perimeter)) if perimeter > 0 else 0
-        )
-
-        if circularity > 0.7:  # Circularity threshold
-            ((x, y), radius) = cv2.minEnclosingCircle(cnt)
-            return (int(x), int(y)), int(radius)
-
-    return None, None
+from animator import TrajectoryAnimator
+from ball_detector import BallDetector
+from constants import DEFAULT_VIDEO_PATH, SHOOTER_X_RANGE, SHOOTER_Y_RANGE
+from trajectory_predictor import TrajectoryPredictor
 
 
-def extract_ball_positions(video_path, display=False):
-    """
-    Extract ball positions from video.
-    Returns: List of (frame_number, x, y) tuples
-    """
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print(f"Error: Could not open video file {video_path}")
-        return []
+def main():
+    # Extract ball positions from video
+    positions = BallDetector.extract_positions(DEFAULT_VIDEO_PATH, display=True)
 
-    positions = []
-    frame_count = 0
+    # Create predictors for both methods
+    predictor_rk4 = TrajectoryPredictor(solver_type="rk4")
+    predictor_euler = TrajectoryPredictor(solver_type="euler")
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    # Reconstruct trajectories
+    points_rk4, velocities_rk4 = predictor_rk4.reconstruct_trajectory(positions)
+    points_euler, velocities_euler = predictor_euler.reconstruct_trajectory(positions)
 
-        frame_count += 1
-        pos, radius = detect_ball(frame)
-
-        if pos is not None:
-            positions.append((frame_count, pos[0], pos[1]))
-
-            if display:
-                # Draw detection for visualization
-                result = frame.copy()
-                cv2.circle(result, pos, radius, (0, 255, 0), 2)
-                cv2.circle(result, pos, 2, (0, 0, 255), -1)
-                cv2.putText(
-                    result,
-                    f"Frame: {frame_count}",
-                    (10, 30),
-                    cv2.FONT_HERSHEY_SIMPLEX,
-                    1,
-                    (0, 255, 0),
-                    2,
-                )
-
-                cv2.imshow("Ball Detection", result)
-                if cv2.waitKey(1) & 0xFF == ord("q"):
-                    break
-
-    cap.release()
-    if display:
-        cv2.destroyAllWindows()
-
-    return positions
-
-
-def plot_trajectory(positions):
-    """
-    Plot the detected ball trajectory.
-    """
-    if not positions:
-        print("No ball positions detected!")
-        return
-
-    positions = np.array(positions)
-
-    plt.figure(figsize=(12, 8))
-
-    plt.scatter(
-        positions[:, 1],
-        positions[:, 2],
-        c=positions[:, 0],
-        cmap="viridis",
-        s=50,
-        alpha=0.6,
+    # Choose random shooter position
+    shooter_pos = (
+        np.random.uniform(SHOOTER_X_RANGE[0], SHOOTER_X_RANGE[1]),
+        np.random.uniform(SHOOTER_Y_RANGE[0], SHOOTER_Y_RANGE[1]),
     )
-    plt.colorbar(label="Frame number")
 
-    plt.plot(positions[:, 1], positions[:, 2], "b-", alpha=0.3)
+    # Simulate interceptors
+    intercept_traj_rk4, intercept_vel_rk4 = predictor_rk4.shoot_interceptor(
+        points_rk4, velocities_rk4, shooter_pos
+    )
+    intercept_traj_euler, intercept_vel_euler = predictor_euler.shoot_interceptor(
+        points_euler, velocities_euler, shooter_pos
+    )
 
-    plt.title("Ball Trajectory")
-    plt.xlabel("X Position (pixels)")
-    plt.ylabel("Y Position (pixels)")
-    plt.grid(True)
-    plt.gca().invert_yaxis()
-
-    plt.show()
+    # Create animations
+    print("\nClose the RK4 animation window to see the Euler method animation.")
+    TrajectoryAnimator.create_animation(
+        points_rk4, intercept_traj_rk4, velocities_rk4, intercept_vel_rk4, method="RK4"
+    )
+    TrajectoryAnimator.create_animation(
+        points_euler,
+        intercept_traj_euler,
+        velocities_euler,
+        intercept_vel_euler,
+        method="Euler",
+    )
 
 
 if __name__ == "__main__":
-    video_path = "test.mp4"
-
-    # Extract positions with visual feedback
-    positions = extract_ball_positions(video_path, display=True)
-
-    # Plot the trajectory
-    plot_trajectory(positions)
-
-    # Print extracted positions
-    print("\nExtracted positions (frame, x, y):")
-    for frame, x, y in positions:
-        print(f"Frame {frame}: ({x}, {y})")
+    main()
