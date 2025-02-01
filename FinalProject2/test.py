@@ -1,7 +1,10 @@
 from typing import List, Optional, Tuple
 
 import cv2
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
 import numpy as np
+from scipy.optimize import minimize
 
 
 class ODESolver:
@@ -13,23 +16,33 @@ class ODESolver:
     def euler_step(self, state: np.ndarray, dt: float) -> np.ndarray:
         """Euler method for one step"""
         x, y, vx, vy = state
+        # In screen coordinates, positive y is downward
         new_x = x + vx * dt
         new_y = y + vy * dt
-        new_vx = vx
-        new_vy = vy + self.g * dt
+        new_vx = vx  # x-velocity remains constant
+        new_vy = vy + self.g * dt  # Add gravity (positive since y is down)
         return np.array([new_x, new_y, new_vx, new_vy])
 
     def rk4_step(self, state: np.ndarray, dt: float) -> np.ndarray:
         """Runge-Kutta 4th order method for one step"""
 
-        def f(s):
+        def f(s, t):
             _, _, vx, vy = s
-            return np.array([vx, vy, 0, self.g])
+            # Physics equations: a = dv/dt, v = dx/dt
+            # In screen coordinates, positive y is downward
+            return np.array(
+                [
+                    vx,  # dx/dt = vx
+                    vy,  # dy/dt = vy
+                    0,  # dvx/dt = 0 (no horizontal acceleration)
+                    self.g,  # dvy/dt = g (positive since y is down)
+                ]
+            )
 
-        k1 = f(state)
-        k2 = f(state + 0.5 * dt * k1)
-        k3 = f(state + 0.5 * dt * k2)
-        k4 = f(state + dt * k3)
+        k1 = f(state, 0)
+        k2 = f(state + 0.5 * dt * k1, dt / 2)
+        k3 = f(state + 0.5 * dt * k2, dt / 2)
+        k4 = f(state + dt * k3, dt)
 
         return state + (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
 
@@ -125,7 +138,8 @@ def reconstruct_trajectory(
     x0, y0 = positions[0]
     x1, y1 = positions[1]
     vx_init = (x1 - x0) / dt
-    vy_init = (y1 - y0) / dt
+    # For y velocity, account for gravity: y = y0 + v0*t + 0.5*g*t^2
+    vy_init = (y1 - y0) / dt - 0.5 * solver.g * dt
 
     def shooting_error(v_init):
         vx0, vy0 = v_init
@@ -147,8 +161,6 @@ def reconstruct_trajectory(
         return error
 
     # Use shooting method to find initial velocities
-    from scipy.optimize import minimize
-
     result = minimize(shooting_error, [vx_init, vy_init], method="Nelder-Mead")
     vx0, vy0 = result.x
 
@@ -213,8 +225,6 @@ def shoot_interceptor(
         return min_dist
 
     # Optimize to find intercepting trajectory
-    from scipy.optimize import minimize
-
     target_speed = np.linalg.norm(target_velocities[0])  # Use same speed as target
     angle = np.arctan2(
         target_trajectory[10][1] - shooter_pos[1],
@@ -229,44 +239,78 @@ def shoot_interceptor(
 def create_animation(
     original_trajectory: np.ndarray,
     intercept_trajectory: np.ndarray,
-    output_path: str = "simulation.mp4",
+    method: str = "RK4",
 ):
-    """Create animation showing both trajectories"""
-    height, width = 480, 640  # Adjust to your video dimensions
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    out = cv2.VideoWriter(output_path, fourcc, 30.0, (width, height))
+    """Create matplotlib animation showing both trajectories"""
+    # Create figure and axis
+    fig, ax = plt.subplots(figsize=(10, 8))
+    ax.set_xlim(0, 640)  # Adjust based on your video dimensions
+    ax.set_ylim(480, 0)  # Inverted y-axis to match video coordinates
+    ax.grid(True)
+    ax.set_title(f"Ball Trajectory Simulation ({method})")
+    ax.set_xlabel("X Position")
+    ax.set_ylabel("Y Position")
 
-    for i in range(max(len(original_trajectory), len(intercept_trajectory))):
-        frame = np.full((height, width, 3), 255, dtype=np.uint8)
+    # Initialize lines and points
+    (original_trail,) = ax.plot([], [], "b-", alpha=0.3, label="Original Ball Trail")
+    (intercept_trail,) = ax.plot([], [], "r-", alpha=0.3, label="Interceptor Trail")
+    (original_point,) = ax.plot([], [], "bo", markersize=10, label="Original Ball")
+    (intercept_point,) = ax.plot([], [], "ro", markersize=10, label="Interceptor")
+    time_text = ax.text(0.02, 0.98, "", transform=ax.transAxes)
 
-        # Draw original trajectory
-        if i < len(original_trajectory):
-            pos = original_trajectory[i].astype(int)
-            cv2.circle(frame, tuple(pos), 10, (255, 0, 0), -1)  # Original ball in blue
-
-            # Draw trail
-            for j in range(max(0, i - 10), i):
-                prev_pos = original_trajectory[j].astype(int)
-                cv2.circle(frame, tuple(prev_pos), 2, (255, 0, 0), -1)
-
-        # Draw interceptor trajectory
-        if i < len(intercept_trajectory):
-            pos = intercept_trajectory[i].astype(int)
-            cv2.circle(frame, tuple(pos), 10, (0, 0, 255), -1)  # Interceptor in red
-
-            # Draw trail
-            for j in range(max(0, i - 10), i):
-                prev_pos = intercept_trajectory[j].astype(int)
-                cv2.circle(frame, tuple(prev_pos), 2, (0, 0, 255), -1)
-
-        # Add frame counter
-        cv2.putText(
-            frame, f"Frame: {i}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2
+    def init():
+        """Initialize animation"""
+        original_trail.set_data([], [])
+        intercept_trail.set_data([], [])
+        original_point.set_data([], [])
+        intercept_point.set_data([], [])
+        time_text.set_text("")
+        ax.legend()
+        return (
+            original_trail,
+            intercept_trail,
+            original_point,
+            intercept_point,
+            time_text,
         )
 
-        out.write(frame)
+    def animate(frame):
+        """Animation function called for each frame"""
+        # Update original ball position and trail
+        if frame < len(original_trajectory):
+            orig_trail_x = original_trajectory[: frame + 1, 0]
+            orig_trail_y = original_trajectory[: frame + 1, 1]
+            original_trail.set_data(orig_trail_x, orig_trail_y)
+            original_point.set_data(
+                [original_trajectory[frame, 0]], [original_trajectory[frame, 1]]
+            )
 
-    out.release()
+        # Update interceptor position and trail
+        if frame < len(intercept_trajectory):
+            int_trail_x = intercept_trajectory[: frame + 1, 0]
+            int_trail_y = intercept_trajectory[: frame + 1, 1]
+            intercept_trail.set_data(int_trail_x, int_trail_y)
+            intercept_point.set_data(
+                [intercept_trajectory[frame, 0]], [intercept_trajectory[frame, 1]]
+            )
+
+        # Update time text
+        time_text.set_text(f"Frame: {frame}")
+
+        return (
+            original_trail,
+            intercept_trail,
+            original_point,
+            intercept_point,
+            time_text,
+        )
+
+    frames = max(len(original_trajectory), len(intercept_trajectory))
+    anim = animation.FuncAnimation(
+        fig, animate, init_func=init, frames=frames, interval=50, blit=True
+    )
+
+    plt.show()
 
 
 def main():
@@ -289,12 +333,10 @@ def main():
         points_euler, velocities_euler, shooter_pos, method="euler"
     )
 
-    # 5. Create animations for both methods
-    create_animation(points_rk4, intercept_traj_rk4, "simulation_rk4.mp4")
-    create_animation(points_euler, intercept_traj_euler, "simulation_euler.mp4")
-
-    print(f"Shooter position: {shooter_pos}")
-    print("Animations saved as 'simulation_rk4.mp4' and 'simulation_euler.mp4'")
+    # 5. Create matplotlib animations for both methods
+    print("\nClose the RK4 animation window to see the Euler method animation.")
+    create_animation(points_rk4, intercept_traj_rk4, method="RK4")
+    create_animation(points_euler, intercept_traj_euler, method="Euler")
 
 
 if __name__ == "__main__":

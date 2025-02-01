@@ -280,7 +280,7 @@ def main(video_path, debug=False):
     )
 
     # Step 5: Simulate the second ball trajectory using RK4
-    start_position = [0, 0]
+    start_position = [10, 8]
     second_initial_conditions = shooting_method_dynamic(
         np.column_stack((x_smooth, y_smooth)), start_position, dt
     )
