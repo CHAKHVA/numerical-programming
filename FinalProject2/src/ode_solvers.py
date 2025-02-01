@@ -1,8 +1,6 @@
-"""ODE solvers for ball trajectory simulation."""
-
 import numpy as np
 
-from constants import GRAVITY
+from src.constants import GRAVITY
 
 
 class ODESolver:
@@ -30,5 +28,4 @@ class ODESolver:
         k3 = f(state + 0.5 * dt * k2, dt / 2)
         k4 = f(state + dt * k3, dt)
 
-        return state + (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)
         return state + (dt / 6) * (k1 + 2 * k2 + 2 * k3 + k4)

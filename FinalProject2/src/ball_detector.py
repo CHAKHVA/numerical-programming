@@ -1,11 +1,7 @@
-"""Ball detection and position extraction from video."""
-
-from typing import List, Optional, Tuple
-
 import cv2
 import numpy as np
 
-from constants import (
+from src.constants import (
     BALL_COLOR_LOWER,
     BALL_COLOR_UPPER,
     GAUSSIAN_KERNEL,
@@ -17,7 +13,7 @@ from constants import (
 
 class BallDetector:
     @staticmethod
-    def detect_ball(frame) -> Tuple[Optional[Tuple[int, int]], Optional[int]]:
+    def detect_ball(frame) -> tuple[tuple[int, int] | None, int | None]:
         """Detect ball in a single frame."""
         blurred = cv2.GaussianBlur(frame, GAUSSIAN_KERNEL, 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
@@ -51,7 +47,7 @@ class BallDetector:
     @classmethod
     def extract_positions(
         cls, video_path: str, display: bool = False
-    ) -> List[Tuple[int, int]]:
+    ) -> list[tuple[int, int]]:
         """Extract ball positions from video."""
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
@@ -91,13 +87,4 @@ class BallDetector:
         if display:
             cv2.destroyAllWindows()
 
-        return positions
-        return positions
-        return positions
-        cap.release()
-        if display:
-            cv2.destroyAllWindows()
-
-        return positions
-        return positions
         return positions

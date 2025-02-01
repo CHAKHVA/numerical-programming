@@ -1,10 +1,8 @@
-"""Animation of ball trajectories."""
-
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 
-from constants import (
+from src.constants import (
     ANIMATION_INTERVAL,
     ARROW_SCALE,
     POINT_SIZE,

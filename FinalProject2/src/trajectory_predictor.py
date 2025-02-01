@@ -1,18 +1,14 @@
-"""Trajectory prediction and reconstruction."""
-
-from typing import List, Tuple
-
 import numpy as np
 from scipy.optimize import minimize
 
-from constants import (
+from src.constants import (
     FPS,
     SIMULATION_EXTENSION,
     VELOCITY_SCALE,
     VIDEO_HEIGHT,
     VIDEO_WIDTH,
 )
-from ode_solvers import ODESolver
+from src.ode_solvers import ODESolver
 
 
 class TrajectoryPredictor:
@@ -21,8 +17,8 @@ class TrajectoryPredictor:
         self.solver_type = solver_type
 
     def reconstruct_trajectory(
-        self, positions: List[Tuple[int, int]]
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        self, positions: list[tuple[int, int]]
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Reconstruct full trajectory using shooting method."""
         dt = 1.0 / FPS
 
@@ -90,8 +86,8 @@ class TrajectoryPredictor:
         self,
         target_trajectory: np.ndarray,
         target_velocities: np.ndarray,
-        shooter_pos: Tuple[float, float],
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        shooter_pos: tuple[float, float],
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Simulate shooter ball to intercept target."""
         dt = 1.0 / FPS
 
@@ -131,13 +127,5 @@ class TrajectoryPredictor:
         )
         v_init_guess = [target_speed * np.cos(angle), target_speed * np.sin(angle)]
 
-        result = minimize(intercept_error, v_init_guess, method="Nelder-Mead")
-        return simulate_shot(result.x)
-        result = minimize(intercept_error, v_init_guess, method="Nelder-Mead")
-        return simulate_shot(result.x)
-        v_init_guess = [target_speed * np.cos(angle), target_speed * np.sin(angle)]
-
-        result = minimize(intercept_error, v_init_guess, method="Nelder-Mead")
-        return simulate_shot(result.x)
         result = minimize(intercept_error, v_init_guess, method="Nelder-Mead")
         return simulate_shot(result.x)

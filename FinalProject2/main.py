@@ -1,11 +1,9 @@
-"""Main execution file for ball trajectory simulation."""
-
 import numpy as np
 
-from animator import TrajectoryAnimator
-from ball_detector import BallDetector
-from constants import DEFAULT_VIDEO_PATH, SHOOTER_X_RANGE, SHOOTER_Y_RANGE
-from trajectory_predictor import TrajectoryPredictor
+from src.animator import TrajectoryAnimator
+from src.ball_detector import BallDetector
+from src.constants import DEFAULT_VIDEO_PATH, SHOOTER_X_RANGE, SHOOTER_Y_RANGE
+from src.trajectory_predictor import TrajectoryPredictor
 
 
 def main():
