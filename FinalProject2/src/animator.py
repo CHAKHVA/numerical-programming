@@ -20,6 +20,7 @@ class TrajectoryAnimator:
         intercept_trajectory: np.ndarray,
         original_velocities: np.ndarray,
         intercept_velocities: np.ndarray,
+        detected_positions: list[tuple[int, int]],
         method: str = "RK4",
     ):
         """Create matplotlib animation showing both trajectories."""
@@ -30,6 +31,28 @@ class TrajectoryAnimator:
         ax.set_title(f"Ball Trajectory Simulation ({method})")
         ax.set_xlabel("X Position")
         ax.set_ylabel("Y Position")
+
+        # Convert detected positions list to numpy array
+        detected_positions_array = np.array(detected_positions)
+
+        # Plot detected positions from video
+        ax.plot(
+            detected_positions_array[:, 0],
+            detected_positions_array[:, 1],
+            "go",  # Green dots
+            alpha=0.3,
+            markersize=4,
+            label="Detected Positions",
+        )
+
+        # Plot full reconstructed trajectory including prediction
+        ax.plot(
+            original_trajectory[:, 0],
+            original_trajectory[:, 1],
+            "b--",
+            alpha=0.2,
+            label="Predicted Full Path",
+        )
 
         # Initialize plot elements
         (original_trail,) = ax.plot(

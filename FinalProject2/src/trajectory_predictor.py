@@ -63,7 +63,8 @@ class TrajectoryPredictor:
         points = []
         velocities = []
 
-        for _ in range(int(SIMULATION_EXTENSION * len(positions))):
+        # Continue simulation until ball hits ground or goes off screen
+        while True:
             points.append(state[:2])
             velocities.append(state[2:])
             state = (
@@ -72,12 +73,21 @@ class TrajectoryPredictor:
                 else self.solver.euler_step(state, dt)
             )
 
+            # Print every 10th point for debugging
             if len(points) % 10 == 0:
                 print(
-                    f"Position: ({state[0]:.1f}, {state[1]:.1f}), Velocity: ({state[2]:.1f}, {state[3]:.1f})"
+                    f"Position: ({state[0]:.1f}, {state[1]:.1f}), "
+                    f"Velocity: ({state[2]:.1f}, {state[3]:.1f})"
                 )
 
-            if state[1] > VIDEO_HEIGHT or state[0] > VIDEO_WIDTH:
+            # Stop if ball hits ground or goes off screen
+            if (
+                state[1] > VIDEO_HEIGHT
+                or state[0] > VIDEO_WIDTH
+                or state[1] < 0
+                or state[0] < 0
+                or len(points) > len(positions) * SIMULATION_EXTENSION
+            ):
                 break
 
         return np.array(points), np.array(velocities)

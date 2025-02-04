@@ -35,13 +35,19 @@ def main():
     # Create animations
     print("\nClose the RK4 animation window to see the Euler method animation.")
     TrajectoryAnimator.create_animation(
-        points_rk4, intercept_traj_rk4, velocities_rk4, intercept_vel_rk4, method="RK4"
+        points_rk4,
+        intercept_traj_rk4,
+        velocities_rk4,
+        intercept_vel_rk4,
+        positions,
+        method="RK4",
     )
     TrajectoryAnimator.create_animation(
         points_euler,
         intercept_traj_euler,
         velocities_euler,
         intercept_vel_euler,
+        positions,
         method="Euler",
     )
 

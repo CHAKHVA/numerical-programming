@@ -351,8 +351,8 @@ The interception problem is solvable because:
 ### 5.1 Project Structure
 
 ``` python
-project/
-├── config.py            # Configuration parameters
+FinalProject2/
+├── constants.py            # Configuration parameters
 ├── ball_detector.py     # Ball detection module
 ├── ode_solvers.py      # Numerical integration methods
 ├── trajectory_predictor.py  # Trajectory calculation
@@ -395,7 +395,6 @@ project/
 ### 6.2 Validation Tests
 
 1. Ball Detection Accuracy:
-   - Tested with different lighting conditions
    - Verified position extraction accuracy
    - Analyzed detection consistency
 
@@ -407,7 +406,6 @@ project/
 3. Interception Accuracy:
    - Tested various shooter positions
    - Verified intersection achievement
-   - Measured minimum distance between balls
 
 ### 6.3 Performance Metrics
 
@@ -441,13 +439,10 @@ project/
 ## 8. References
 
 1. Numerical Methods:
-   - Burden, R. L., & Faires, J. D. "Numerical Analysis"
-   - Press, W. H., et al. "Numerical Recipes"
+   - Numerical Analysis
 
 2. Computer Vision:
    - OpenCV Documentation
-   - Gonzalez, R. C., & Woods, R. E. "Digital Image Processing"
 
 3. Physics:
-   - Taylor, J. R. "Classical Mechanics"
    - Projectile Motion with Air Resistance

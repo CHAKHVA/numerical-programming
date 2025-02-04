@@ -18,7 +18,7 @@ MORPH_KERNEL = (5, 5)  # Morphological operations kernel size
 
 # Simulation parameters
 VELOCITY_SCALE = 0.1  # Scale factor for velocity
-SIMULATION_EXTENSION = 2.0  # How much longer to simulate beyond detected positions
+SIMULATION_EXTENSION = 5.0
 
 # Animation parameters
 ANIMATION_INTERVAL = 50  # Animation interval in milliseconds
