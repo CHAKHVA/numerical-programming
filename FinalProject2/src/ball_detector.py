@@ -3,7 +3,9 @@ import numpy as np
 
 from src.constants import (
     BALL_COLOR_LOWER,
+    BALL_COLOR_LOWER_2,
     BALL_COLOR_UPPER,
+    BALL_COLOR_UPPER_2,
     GAUSSIAN_KERNEL,
     MIN_BALL_AREA,
     MIN_CIRCULARITY,
@@ -18,10 +20,22 @@ class BallDetector:
         blurred = cv2.GaussianBlur(frame, GAUSSIAN_KERNEL, 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 
+        lower_bound1 = np.array(BALL_COLOR_LOWER)
+        upper_bound1 = np.array(BALL_COLOR_UPPER)
+        lower_bound2 = np.array(BALL_COLOR_LOWER_2)
+        upper_bound2 = np.array(BALL_COLOR_UPPER_2)
+
+        mask1 = cv2.inRange(hsv, lower_bound1, upper_bound1)
+        mask2 = cv2.inRange(hsv, lower_bound2, upper_bound2)
+        mask = cv2.bitwise_or(mask1, mask2)
+
+        """
+        BLUE
         lower_bound = np.array(BALL_COLOR_LOWER)
         upper_bound = np.array(BALL_COLOR_UPPER)
 
         mask = cv2.inRange(hsv, lower_bound, upper_bound)
+        """
         kernel = np.ones(MORPH_KERNEL, np.uint8)
         mask = cv2.erode(mask, kernel, iterations=1)
         mask = cv2.dilate(mask, kernel, iterations=2)
